@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        target: wasm32-unknown-unknown
+        toolchain: stable
+
+    - uses: Swatinem/rust-cache@v1
+    
+    - name: Setup
+      uses: actions-rs/cargo@v1
+      with:
+        command: install
+        args: trunk wasm-bindgen-cli
+      
+    - name: Build
+      run: trunk build --release --public-url /solitaire
+
+    - name: Setup Deploy
+      shell: bash
+      env:
+        DEPLOY_CONF: ${{ secrets.DEPLOY_CONF }}
+        DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+      run: |
+        sudo apt install -y rclone
+        umask 0177
+        echo "$DEPLOY_CONF" > deploy.conf
+        umask 0113
+        echo "$DEPLOY_KEY" > id_rsa
+        
+    - name: Deploy
+      run: rclone --config deploy.conf sync dist deploy:solitaire

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Yew App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500&display=swap" rel="stylesheet"> 
+</head>
+
+<style>
+    * {
+        font-family: 'Inter', sans-serif;
+    }
+    body {
+        background-color: green;
+    }
+
+    .card-base {
+        display: inline-block;
+        position: absolute;
+        
+        background-color: white;
+        height: 175px;
+        width: 125px;
+        
+        user-select: none;
+
+        border-radius: 5px;
+
+        box-shadow: 0 0 0 2px black;
+    }
+
+    .card-logo {
+        display: inline-block;
+        font-size: 30px;
+        text-align: center;
+        line-height: 27px;
+    }
+
+    .card-logo-flipped {
+        display: block;
+        position: absolute;
+        transform: scale(-1, -1);
+        bottom: 0px;
+        right: 0px;
+    }
+
+    .card-pic-single-letter {
+        font-size: 75px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .card-red {
+        color: red;
+    }
+
+    .card-black {
+        color: black;
+    }
+
+    .card-pic-number {
+        text-align: center;
+        font-size: 30px;
+        line-height: 25px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .flipped-card {
+        display: inline-block;
+        position: absolute;
+        
+        background: linear-gradient(45deg, red 12%, transparent 0, transparent 88%, red 0),
+        linear-gradient(135deg, transparent 37%, red 0, red 63%, transparent 0),
+        linear-gradient(45deg, transparent 37%, red 0, red 63%, transparent 0) white;
+        background-size: 10px 10px;
+
+        height: 155px;
+        width: 105px;
+        
+        user-select: none;
+
+        border-radius: 5px;
+        border-color: white;
+        border-width: 10px;
+        border-style: solid;
+        box-shadow: 0 0 0 2px black;
+    }
+
+    .empty-slot {
+        display: inline-block;
+        position: absolute;
+        
+        background-color: darkgreen;
+
+        height: 175px;
+        width: 125px;
+        
+        user-select: none;
+
+        border-radius: 5px;
+    }
+
+    @keyframes movingCard {
+        0% {
+            left: var(--start-left);
+            top: var(--start-top);
+        }
+       /* 100% {
+            left: var(--end-left);
+            top: var(--end-top);
+        }*/
+    }
+</style>
+
+</html>
