@@ -73,9 +73,9 @@ pub enum CardSinks {
     Tableau7,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct HeldCard {
-    card: Card,
+    card: Vec<Card>,
     source: CardSources,
     x: i32,
     y: i32,
@@ -93,7 +93,7 @@ impl HeldCard {
             .expect("By this point, card should be available")
             .position();
         Self {
-            card,
+            card: vec![card],
             source: card_source,
             x: mouse_x - CARD_WIDTH as i32 / 2,
             y: mouse_y - CARD_HEIGHT as i32 / 2,
@@ -116,9 +116,9 @@ impl HeldCard {
 
     pub fn as_html(&self) -> Html {
         if let Some((from_x, from_y)) = self.prev_pos {
-            CardVisual::Card(self.card).as_draggable_html_from(from_x, from_y, self.x, self.y)
+            CardVisual::Card(self.card[0]).as_draggable_html_from(from_x, from_y, self.x, self.y)
         } else {
-            CardVisual::Card(self.card).as_draggable_html(self.x, self.y)
+            CardVisual::Card(self.card[0]).as_draggable_html(self.x, self.y)
         }
     }
 }
@@ -342,24 +342,24 @@ impl Component for Model {
         match msg {
             Msg::MouseUp(mouse_x, mouse_y) => {
                 let mut result = false;
-                if let Some(held_card) = self.held_card {
+                if let Some(source) = self.held_card.as_ref().map(HeldCard::source) {
                     let card = self
-                        .borrow_held_source(held_card)
+                        .borrow_source(source)
                         .peek_card()
                         .expect("card should be available");
                     if let Some(sink) = self
                         .borrow_sinks()
                         .iter_mut()
                         .find(|s| {
-                            s.within_bounds(mouse_x, mouse_y) && s.is_placement_possible(card)
+                            s.within_bounds(mouse_x, mouse_y) && s.is_placement_possible(vec![card])
                         })
                         .map(|s| s.card_sink())
                     {
                         // Place card
-                        let source = self.borrow_source(held_card.source());
+                        let source = self.borrow_source(source);
                         let physical_card = source.take_card().expect("card should be available");
                         self.borrow_sink(sink)
-                            .place_card(mouse_x, mouse_y, physical_card)
+                            .place_card(mouse_x, mouse_y, vec![physical_card])
                             .expect("placement should be possible");
 
                         self.held_card = None;
@@ -367,7 +367,7 @@ impl Component for Model {
                     } else {
                         // Return card
                         let physical_card = self
-                            .borrow_held_source(held_card)
+                            .borrow_source(source)
                             .borrow_card_mut()
                             .expect("card should be available");
 
@@ -386,7 +386,7 @@ impl Component for Model {
             Msg::MouseDown(x, y) => {
                 self.stock_discard.handle_click(x, y) || {
                     let mut result = false;
-                    self.held_card = self.held_card.or_else(|| {
+                    if self.held_card.is_none() {
                         if let Some(source) = self.borrow_sources().iter_mut().find(|s| {
                             s.borrow_card()
                                 .map(|c| c.within_bounds(x, y))
@@ -397,11 +397,11 @@ impl Component for Model {
                                 .expect("card should be available")
                                 .set_visible(false);
                             result = true;
-                            Some(HeldCard::new(*source, x, y))
+                            self.held_card = Some(HeldCard::new(*source, x, y));
                         } else {
-                            None
+                            self.held_card = None;
                         }
-                    });
+                    }
                     result
                 }
             }
@@ -424,7 +424,7 @@ impl Component for Model {
     }
 
     fn view(&self) -> Html {
-        let held_card_html = self.held_card.map_or(html! {}, |c| c.as_html());
+        let held_card_html = self.held_card.as_ref().map_or(html! {}, |c| c.as_html());
         html! {
             <div>
                 /* <button onclick=self.link.callback(|_| Msg::StockToDiscard)>{ "Deal" }</button> */

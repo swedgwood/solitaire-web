@@ -87,9 +87,11 @@ impl CardSink for Tableau {
         &mut self,
         mouse_x: i32,
         mouse_y: i32,
-        mut physical_card: PhysicalCard,
+        mut physical_cards: Vec<PhysicalCard>,
     ) -> Result<(), ()> {
-        if self.is_placement_possible(physical_card.card()) {
+        if self.is_placement_possible(physical_cards.iter().map(PhysicalCard::card).collect()) {
+            // Placement is only possible if there is one card
+            let mut physical_card = physical_cards.pop().expect("card should be present");
             let card_pos = self.cards.len() as i32;
             physical_card.set_position(self.x, self.y + STACKED_CARD_Y_STRIDE * card_pos);
             physical_card.set_prev_loc(
@@ -115,13 +117,17 @@ impl CardSink for Tableau {
         .contains(x, y)
     }
 
-    fn is_placement_possible(&self, card: Card) -> bool {
-        let Card(value, suit) = card;
-        if let Some(Card(top_value, top_suit)) = self.cards.last().map(PhysicalCard::card) {
-            top_value.prev_value().map_or(false, |v| v == value)
-                && top_suit.colour() != suit.colour()
+    fn is_placement_possible(&self, cards: Vec<Card>) -> bool {
+        if cards.len() == 1 {
+            let Card(value, suit) = *cards.last().expect("card should be present");
+            if let Some(Card(top_value, top_suit)) = self.cards.last().map(PhysicalCard::card) {
+                top_value.prev_value().map_or(false, |v| v == value)
+                    && top_suit.colour() != suit.colour()
+            } else {
+                value == Value::King
+            }
         } else {
-            value == Value::King
+            false
         }
     }
 }

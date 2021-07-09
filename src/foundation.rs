@@ -40,19 +40,24 @@ impl CardSink for Foundation {
         self.sink
     }
 
-    fn is_placement_possible(&self, card: Card) -> bool {
-        let Card(value, suit) = card;
+    fn is_placement_possible(&self, cards: Vec<Card>) -> bool {
+        if cards.len() == 1 {
+            let card = *cards.first().expect("card should be present");
+            let Card(value, suit) = card;
 
-        if let Some(top_card) = self.cards.last() {
-            let Card(top_value, top_suit) = top_card.card();
+            if let Some(top_card) = self.cards.last() {
+                let Card(top_value, top_suit) = top_card.card();
 
-            if let Some(next_value) = top_value.next_value() {
-                top_suit == suit && next_value == value
+                if let Some(next_value) = top_value.next_value() {
+                    top_suit == suit && next_value == value
+                } else {
+                    false
+                }
             } else {
-                false
+                value == Value::Ace
             }
         } else {
-            value == Value::Ace
+            false
         }
     }
 
@@ -61,9 +66,11 @@ impl CardSink for Foundation {
         &mut self,
         mouse_x: i32,
         mouse_y: i32,
-        mut physical_card: PhysicalCard,
+        mut physical_cards: Vec<PhysicalCard>,
     ) -> Result<(), ()> {
-        if self.is_placement_possible(physical_card.card()) {
+        if self.is_placement_possible(physical_cards.iter().map(PhysicalCard::card).collect()) {
+            // Placement is only possible if there is one card
+            let mut physical_card = physical_cards.pop().expect("card should be present");
             physical_card.set_position(self.x, self.y);
             physical_card.set_prev_loc(
                 mouse_x - CARD_WIDTH as i32 / 2,
