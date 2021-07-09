@@ -75,7 +75,7 @@ pub enum CardSinks {
 
 #[derive(Clone)]
 struct HeldCard {
-    card: Vec<Card>,
+    cards: Vec<Card>,
     source: CardSources,
     x: i32,
     y: i32,
@@ -93,7 +93,7 @@ impl HeldCard {
             .expect("By this point, card should be available")
             .position();
         Self {
-            card: vec![card],
+            cards: vec![card],
             source: card_source,
             x: mouse_x - CARD_WIDTH as i32 / 2,
             y: mouse_y - CARD_HEIGHT as i32 / 2,
@@ -116,9 +116,21 @@ impl HeldCard {
 
     pub fn as_html(&self) -> Html {
         if let Some((from_x, from_y)) = self.prev_pos {
-            CardVisual::Card(self.card[0]).as_draggable_html_from(from_x, from_y, self.x, self.y)
+            html! {
+                { for self.cards.iter().enumerate().map(|(i, c)|
+                    CardVisual::Card(*c).as_draggable_html_from(
+                        from_x, from_y, self.x, self.y + i as i32 * STACKED_CARD_Y_STRIDE
+                    )
+                )}
+            }
         } else {
-            CardVisual::Card(self.card[0]).as_draggable_html(self.x, self.y)
+            html! {
+                { for self.cards.iter().enumerate().map(|(i, c)|
+                    CardVisual::Card(*c).as_draggable_html(
+                        self.x, self.y + i as i32 * STACKED_CARD_Y_STRIDE
+                    )
+                )}
+            }
         }
     }
 }
