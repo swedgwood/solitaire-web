@@ -3,7 +3,7 @@ use yew::{html, Html};
 use crate::{
     card::{CardSource, CardVisual, PhysicalCard},
     util::Bounds,
-    CardSources,
+    CardSources, CARD_HEIGHT, CARD_WIDTH, CARD_X_STRIDE, STACKED_CARD_X_STRIDE,
 };
 
 pub struct Stock {
@@ -17,7 +17,7 @@ impl Stock {
     pub fn new(x: i32, y: i32) -> Self {
         Self {
             cards: Vec::new(),
-            bounds: Bounds::new(x, y, 125, 175),
+            bounds: Bounds::new(x, y, CARD_WIDTH, CARD_HEIGHT),
             x,
             y,
         }
@@ -89,7 +89,7 @@ impl Discard {
 
                 if len - index <= 2 {
                     let offset = 3 - (len - index) as i32; // Should be a value in {1, 2}
-                    x += offset * 35;
+                    x += offset * STACKED_CARD_X_STRIDE;
                 }
 
                 card.move_to(x, self_y);
@@ -145,7 +145,7 @@ impl StockDiscard {
     pub fn new(x: i32, y: i32) -> Self {
         Self {
             stock: Stock::new(x, y),
-            discard: Discard::new(x + 145, y),
+            discard: Discard::new(x + CARD_X_STRIDE, y),
         }
     }
 

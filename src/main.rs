@@ -1,12 +1,14 @@
 use foundation::Foundation;
 use rand::{prelude::SliceRandom, thread_rng};
+use tableau::Tableau;
 use wasm_bindgen::{closure::Closure, JsCast};
-use web_sys::MouseEvent;
+use web_sys::{Document, MouseEvent};
 use yew::{html, Component, ComponentLink, Html, ShouldRender};
 
 mod card;
 mod foundation;
 mod stock_discard;
+mod tableau;
 mod util;
 
 use card::{Card, CardSink, CardSource, CardVisual, PhysicalCard, DECK};
@@ -14,6 +16,23 @@ use stock_discard::StockDiscard;
 
 const CARD_WIDTH: u32 = 125;
 const CARD_HEIGHT: u32 = 175;
+
+const PADDING: i32 = 10;
+
+const STACKED_CARD_X_STRIDE: i32 = 35;
+const STACKED_CARD_Y_STRIDE: i32 = 45;
+
+const CARD_X_STRIDE: i32 = CARD_WIDTH as i32 + 20;
+const CARD_Y_STRIDE: i32 = CARD_HEIGHT as i32 + 20;
+
+const STOCK_DISCARD_X: i32 = PADDING;
+const STOCK_DISCARD_Y: i32 = PADDING;
+
+const FOUNDATIONS_X: i32 = PADDING + 3 * CARD_X_STRIDE;
+const FOUNDATIONS_Y: i32 = PADDING;
+
+const TABLEAUS_Y: i32 = PADDING + CARD_Y_STRIDE;
+const TABLEAUS_X: i32 = PADDING;
 
 #[allow(clippy::enum_variant_names)]
 enum Msg {
@@ -110,6 +129,13 @@ struct Model {
     foundation2: Foundation,
     foundation3: Foundation,
     foundation4: Foundation,
+    tableau1: Tableau,
+    tableau2: Tableau,
+    tableau3: Tableau,
+    tableau4: Tableau,
+    tableau5: Tableau,
+    tableau6: Tableau,
+    tableau7: Tableau,
     held_card: Option<HeldCard>,
 }
 
@@ -121,6 +147,13 @@ impl Model {
             &mut self.foundation2,
             &mut self.foundation3,
             &mut self.foundation4,
+            &mut self.tableau1,
+            &mut self.tableau2,
+            &mut self.tableau3,
+            &mut self.tableau4,
+            &mut self.tableau5,
+            &mut self.tableau6,
+            &mut self.tableau7,
         ]
     }
 
@@ -130,6 +163,13 @@ impl Model {
             &mut self.foundation2,
             &mut self.foundation3,
             &mut self.foundation4,
+            &mut self.tableau1,
+            &mut self.tableau2,
+            &mut self.tableau3,
+            &mut self.tableau4,
+            &mut self.tableau5,
+            &mut self.tableau6,
+            &mut self.tableau7,
         ]
     }
 
@@ -140,13 +180,13 @@ impl Model {
             CardSources::Foundation2 => &mut self.foundation2,
             CardSources::Foundation3 => &mut self.foundation3,
             CardSources::Foundation4 => &mut self.foundation4,
-            CardSources::Tableau1 => todo!(),
-            CardSources::Tableau2 => todo!(),
-            CardSources::Tableau3 => todo!(),
-            CardSources::Tableau4 => todo!(),
-            CardSources::Tableau5 => todo!(),
-            CardSources::Tableau6 => todo!(),
-            CardSources::Tableau7 => todo!(),
+            CardSources::Tableau1 => &mut self.tableau1,
+            CardSources::Tableau2 => &mut self.tableau2,
+            CardSources::Tableau3 => &mut self.tableau3,
+            CardSources::Tableau4 => &mut self.tableau4,
+            CardSources::Tableau5 => &mut self.tableau5,
+            CardSources::Tableau6 => &mut self.tableau6,
+            CardSources::Tableau7 => &mut self.tableau7,
         }
     }
 
@@ -156,33 +196,21 @@ impl Model {
             CardSinks::Foundation2 => &mut self.foundation2,
             CardSinks::Foundation3 => &mut self.foundation3,
             CardSinks::Foundation4 => &mut self.foundation4,
-            CardSinks::Tableau1 => todo!(),
-            CardSinks::Tableau2 => todo!(),
-            CardSinks::Tableau3 => todo!(),
-            CardSinks::Tableau4 => todo!(),
-            CardSinks::Tableau5 => todo!(),
-            CardSinks::Tableau6 => todo!(),
-            CardSinks::Tableau7 => todo!(),
+            CardSinks::Tableau1 => &mut self.tableau1,
+            CardSinks::Tableau2 => &mut self.tableau2,
+            CardSinks::Tableau3 => &mut self.tableau3,
+            CardSinks::Tableau4 => &mut self.tableau4,
+            CardSinks::Tableau5 => &mut self.tableau5,
+            CardSinks::Tableau6 => &mut self.tableau6,
+            CardSinks::Tableau7 => &mut self.tableau7,
         }
     }
 
     fn borrow_held_source(&mut self, held_card: HeldCard) -> &mut dyn CardSource {
         self.borrow_source(held_card.source())
     }
-}
 
-impl Component for Model {
-    type Message = Msg;
-    type Properties = ();
-
-    fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let mut stock_cards: Vec<PhysicalCard> =
-            DECK.iter().map(|c| PhysicalCard::new(0, 0, c)).collect();
-        stock_cards.shuffle(&mut thread_rng());
-
-        let window = web_sys::window().expect("no global `window` exists");
-        let document = window.document().expect("should have a document on window");
-
+    fn setup_event_callbacks(document: &Document, link: &ComponentLink<Self>) {
         let mouseup_callback = link.callback(|e: MouseEvent| Msg::MouseUp(e.page_x(), e.page_y()));
         let mouseup_closure =
             Closure::wrap(Box::new(move |e: MouseEvent| mouseup_callback.emit(e))
@@ -206,13 +234,106 @@ impl Component for Model {
                 as Box<dyn FnMut(MouseEvent)>);
         document.set_onmousemove(Some(mousemove_closure.as_ref().unchecked_ref()));
         mousemove_closure.forget();
+    }
+}
+
+impl Component for Model {
+    type Message = Msg;
+    type Properties = ();
+
+    fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let mut stock_cards: Vec<PhysicalCard> =
+            DECK.iter().map(|c| PhysicalCard::new(0, 0, c)).collect();
+        stock_cards.shuffle(&mut thread_rng());
+
+        let tableau1_cards: Vec<PhysicalCard> = stock_cards.drain(0..1).collect();
+        let tableau2_cards: Vec<PhysicalCard> = stock_cards.drain(0..2).collect();
+        let tableau3_cards: Vec<PhysicalCard> = stock_cards.drain(0..3).collect();
+        let tableau4_cards: Vec<PhysicalCard> = stock_cards.drain(0..4).collect();
+        let tableau5_cards: Vec<PhysicalCard> = stock_cards.drain(0..5).collect();
+        let tableau6_cards: Vec<PhysicalCard> = stock_cards.drain(0..6).collect();
+        let tableau7_cards: Vec<PhysicalCard> = stock_cards.drain(0..7).collect();
+
+        let window = web_sys::window().expect("no global `window` exists");
+        let document = window.document().expect("should have a document on window");
+
+        Self::setup_event_callbacks(&document, &link);
 
         Self {
-            stock_discard: StockDiscard::from_cards(10, 10, stock_cards),
-            foundation1: Foundation::new(400, 10, CardSinks::Foundation1, CardSources::Foundation1),
-            foundation2: Foundation::new(550, 10, CardSinks::Foundation2, CardSources::Foundation2),
-            foundation3: Foundation::new(700, 10, CardSinks::Foundation3, CardSources::Foundation3),
-            foundation4: Foundation::new(850, 10, CardSinks::Foundation4, CardSources::Foundation4),
+            stock_discard: StockDiscard::from_cards(STOCK_DISCARD_X, STOCK_DISCARD_Y, stock_cards),
+            foundation1: Foundation::new(
+                FOUNDATIONS_X,
+                FOUNDATIONS_Y,
+                CardSinks::Foundation1,
+                CardSources::Foundation1,
+            ),
+            foundation2: Foundation::new(
+                FOUNDATIONS_X + CARD_X_STRIDE,
+                FOUNDATIONS_Y,
+                CardSinks::Foundation2,
+                CardSources::Foundation2,
+            ),
+            foundation3: Foundation::new(
+                FOUNDATIONS_X + CARD_X_STRIDE * 2,
+                FOUNDATIONS_Y,
+                CardSinks::Foundation3,
+                CardSources::Foundation3,
+            ),
+            foundation4: Foundation::new(
+                FOUNDATIONS_X + CARD_X_STRIDE * 3,
+                FOUNDATIONS_Y,
+                CardSinks::Foundation4,
+                CardSources::Foundation4,
+            ),
+            tableau1: Tableau::from_cards(
+                TABLEAUS_X,
+                TABLEAUS_Y,
+                tableau1_cards,
+                CardSinks::Tableau1,
+                CardSources::Tableau1,
+            ),
+            tableau2: Tableau::from_cards(
+                TABLEAUS_X + CARD_X_STRIDE,
+                TABLEAUS_Y,
+                tableau2_cards,
+                CardSinks::Tableau2,
+                CardSources::Tableau2,
+            ),
+            tableau3: Tableau::from_cards(
+                TABLEAUS_X + CARD_X_STRIDE * 2,
+                TABLEAUS_Y,
+                tableau3_cards,
+                CardSinks::Tableau3,
+                CardSources::Tableau3,
+            ),
+            tableau4: Tableau::from_cards(
+                TABLEAUS_X + CARD_X_STRIDE * 3,
+                TABLEAUS_Y,
+                tableau4_cards,
+                CardSinks::Tableau4,
+                CardSources::Tableau4,
+            ),
+            tableau5: Tableau::from_cards(
+                TABLEAUS_X + CARD_X_STRIDE * 4,
+                TABLEAUS_Y,
+                tableau5_cards,
+                CardSinks::Tableau5,
+                CardSources::Tableau5,
+            ),
+            tableau6: Tableau::from_cards(
+                TABLEAUS_X + CARD_X_STRIDE * 5,
+                TABLEAUS_Y,
+                tableau6_cards,
+                CardSinks::Tableau6,
+                CardSources::Tableau6,
+            ),
+            tableau7: Tableau::from_cards(
+                TABLEAUS_X + CARD_X_STRIDE * 6,
+                TABLEAUS_Y,
+                tableau7_cards,
+                CardSinks::Tableau7,
+                CardSources::Tableau7,
+            ),
             held_card: None,
         }
     }
@@ -312,6 +433,13 @@ impl Component for Model {
                 { self.foundation2.as_html() }
                 { self.foundation3.as_html() }
                 { self.foundation4.as_html() }
+                { self.tableau1.as_html() }
+                { self.tableau2.as_html() }
+                { self.tableau3.as_html() }
+                { self.tableau4.as_html() }
+                { self.tableau5.as_html() }
+                { self.tableau6.as_html() }
+                { self.tableau7.as_html() }
                 { self.stock_discard.as_html() }
                 { held_card_html }
             </div>

@@ -16,6 +16,21 @@ pub enum Suit {
     Hearts,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum SuitColour {
+    Red,
+    Black,
+}
+
+impl Suit {
+    pub fn colour(&self) -> SuitColour {
+        match self {
+            Self::Spades | Self::Clubs => SuitColour::Black,
+            Self::Diamonds | Self::Hearts => SuitColour::Red,
+        }
+    }
+}
+
 impl fmt::Display for Suit {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
