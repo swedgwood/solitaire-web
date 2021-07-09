@@ -6,13 +6,14 @@
     <title>Solitaire</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500&display=swap" rel="stylesheet"> 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500&display=swap" rel="stylesheet">
 </head>
 
 <style>
     * {
         font-family: 'Inter', sans-serif;
     }
+
     body {
         background-color: green;
     }
@@ -20,11 +21,11 @@
     .card-base {
         display: inline-block;
         position: absolute;
-        
+
         background-color: white;
         height: 175px;
         width: 125px;
-        
+
         user-select: none;
 
         border-radius: 5px;
@@ -76,15 +77,15 @@
     .flipped-card {
         display: inline-block;
         position: absolute;
-        
+
         background: linear-gradient(45deg, red 12%, transparent 0, transparent 88%, red 0),
-        linear-gradient(135deg, transparent 37%, red 0, red 63%, transparent 0),
-        linear-gradient(45deg, transparent 37%, red 0, red 63%, transparent 0) white;
+            linear-gradient(135deg, transparent 37%, red 0, red 63%, transparent 0),
+            linear-gradient(45deg, transparent 37%, red 0, red 63%, transparent 0) white;
         background-size: 10px 10px;
 
         height: 155px;
         width: 105px;
-        
+
         user-select: none;
 
         border-radius: 5px;
@@ -97,15 +98,17 @@
     .empty-slot {
         display: inline-block;
         position: absolute;
-        
+
         background-color: darkgreen;
 
         height: 175px;
         width: 125px;
-        
+
         user-select: none;
 
         border-radius: 5px;
+
+        z-index: -10;
     }
 
     @keyframes movingCard {
@@ -113,7 +116,8 @@
             left: var(--start-left);
             top: var(--start-top);
         }
-       /* 100% {
+
+        /* 100% {
             left: var(--end-left);
             top: var(--end-top);
         }*/
