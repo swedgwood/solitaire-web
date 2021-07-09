@@ -15,6 +15,7 @@ use stock_discard::StockDiscard;
 const CARD_WIDTH: u32 = 125;
 const CARD_HEIGHT: u32 = 175;
 
+#[allow(clippy::enum_variant_names)]
 enum Msg {
     MouseUp(i32, i32),
     MouseDown(i32, i32),
