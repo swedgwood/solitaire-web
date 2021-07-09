@@ -6,7 +6,7 @@ use rand::Rng;
 use yew::{html, Html};
 
 use crate::util::Bounds;
-use crate::{CardSinks, CardSources, CARD_HEIGHT, CARD_WIDTH};
+use crate::{CardSinks, CardSources, CARD_HEIGHT, CARD_WIDTH, STACKED_CARD_Y_STRIDE};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Suit {
@@ -397,6 +397,10 @@ impl PhysicalCard {
         self.visible = visible;
     }
 
+    pub fn flipped(&self) -> bool {
+        self.flipped
+    }
+
     pub fn set_flipped(&mut self, flipped: bool) {
         self.flipped = flipped;
     }
@@ -448,36 +452,42 @@ impl PhysicalCard {
 
 pub trait CardSource {
     fn card_source(&self) -> CardSources;
-    fn borrow_card(&self) -> Option<&PhysicalCard>;
-    fn borrow_card_mut(&mut self) -> Option<&mut PhysicalCard>;
 
-    fn take_card(&mut self) -> Option<PhysicalCard>;
-    fn peek_card(&self) -> Option<Card> {
-        self.borrow_card().map(PhysicalCard::card)
+    // This is only cards that can be picked up
+    fn borrow_cards(&self, count: usize) -> Vec<&PhysicalCard>;
+    fn borrow_cards_mut(&mut self, count: usize) -> Vec<&mut PhysicalCard>;
+
+    fn take_cards(&mut self, count: usize) -> Vec<PhysicalCard>;
+    fn peek_cards(&self, count: usize) -> Vec<Card> {
+        self.borrow_cards(count)
+            .into_iter()
+            .map(PhysicalCard::card)
+            .collect()
     }
-    fn set_release_location(&mut self, x: i32, y: i32) -> Result<(), ()> {
-        if let Some(physical_card) = self.borrow_card_mut() {
-            physical_card.set_prev_loc(x, y);
-            Ok(())
-        } else {
-            Err(())
+
+    fn how_many_cards(&self, mouse_x: i32, mouse_y: i32) -> usize;
+
+    fn set_release_location(&mut self, x: i32, y: i32, count: usize) {
+        for (i, physical_card) in self.borrow_cards_mut(count).into_iter().enumerate() {
+            physical_card.set_prev_loc(x, y + i as i32 * STACKED_CARD_Y_STRIDE);
         }
     }
-    fn set_mouse_release_location(&mut self, x: i32, y: i32) -> Result<(), ()> {
+
+    fn set_mouse_release_location(&mut self, x: i32, y: i32, count: usize) {
         let x = x - CARD_WIDTH as i32 / 2;
         let y = y - CARD_HEIGHT as i32 / 2;
-        self.set_release_location(x, y)
+        self.set_release_location(x, y, count);
     }
 }
 
 pub trait CardSink {
     fn card_sink(&self) -> CardSinks;
-    fn place_card(
+    fn place_cards(
         &mut self,
         mouse_x: i32,
         mouse_y: i32,
         physical_cards: Vec<PhysicalCard>,
     ) -> Result<(), ()>;
     fn within_bounds(&self, x: i32, y: i32) -> bool;
-    fn is_placement_possible(&self, cards: Vec<Card>) -> bool;
+    fn is_placement_possible(&self, cards: &Vec<Card>) -> bool;
 }

@@ -119,20 +119,44 @@ impl Discard {
 }
 
 impl CardSource for Discard {
-    fn take_card(&mut self) -> Option<PhysicalCard> {
-        self.cards.pop()
+    fn take_cards(&mut self, num: usize) -> Vec<PhysicalCard> {
+        if num > 0 {
+            self.cards.pop().map_or_else(Vec::new, |c| vec![c])
+        } else {
+            Vec::new()
+        }
     }
 
-    fn borrow_card(&self) -> Option<&PhysicalCard> {
-        self.cards.last()
+    fn borrow_cards(&self, count: usize) -> Vec<&PhysicalCard> {
+        if count > 0 {
+            self.cards.last().map_or_else(Vec::new, |c| vec![c])
+        } else {
+            Vec::new()
+        }
     }
 
     fn card_source(&self) -> CardSources {
         CardSources::Discard
     }
 
-    fn borrow_card_mut(&mut self) -> Option<&mut PhysicalCard> {
-        self.cards.last_mut()
+    fn borrow_cards_mut(&mut self, count: usize) -> Vec<&mut PhysicalCard> {
+        if count > 0 {
+            self.cards.last_mut().map_or_else(Vec::new, |c| vec![c])
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn how_many_cards(&self, mouse_x: i32, mouse_y: i32) -> usize {
+        if let Some(physical_card) = self.cards.last() {
+            if physical_card.within_bounds(mouse_x, mouse_y) {
+                1
+            } else {
+                0
+            }
+        } else {
+            0
+        }
     }
 }
 

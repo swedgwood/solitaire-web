@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 use yew::{html, Html};
 
 use crate::{
@@ -54,6 +56,34 @@ impl Tableau {
             </>
         }
     }
+
+    fn faceup_cards(&self) -> Vec<&PhysicalCard> {
+        let mut cards: Vec<&PhysicalCard> = Vec::new();
+
+        for card in self.cards.iter().rev() {
+            if card.flipped() {
+                break;
+            }
+            cards.push(card);
+        }
+
+        cards.reverse();
+        cards
+    }
+
+    fn faceup_cards_mut(&mut self) -> Vec<&mut PhysicalCard> {
+        let mut cards: Vec<&mut PhysicalCard> = Vec::new();
+
+        for card in self.cards.iter_mut().rev() {
+            if card.flipped() {
+                break;
+            }
+            cards.push(card);
+        }
+
+        cards.reverse();
+        cards
+    }
 }
 
 impl CardSource for Tableau {
@@ -61,20 +91,53 @@ impl CardSource for Tableau {
         self.source
     }
 
-    fn borrow_card(&self) -> Option<&PhysicalCard> {
-        self.cards.last()
+    fn borrow_cards(&self, count: usize) -> Vec<&PhysicalCard> {
+        self.faceup_cards()
+            .into_iter()
+            .rev()
+            .take(count)
+            .rev()
+            .collect()
     }
 
-    fn borrow_card_mut(&mut self) -> Option<&mut PhysicalCard> {
-        self.cards.last_mut()
+    fn borrow_cards_mut(&mut self, count: usize) -> Vec<&mut PhysicalCard> {
+        self.faceup_cards_mut()
+            .into_iter()
+            .rev()
+            .take(count)
+            .rev()
+            .collect()
     }
 
-    fn take_card(&mut self) -> Option<PhysicalCard> {
-        let card = self.cards.pop();
+    fn take_cards(&mut self, num: usize) -> Vec<PhysicalCard> {
+        let mut cards: Vec<PhysicalCard> = Vec::new();
+
+        for i in 0..num {
+            if let Some(card) = self.cards.pop() {
+                if card.flipped() {
+                    self.cards.push(card);
+                    break;
+                }
+
+                cards.push(card);
+            } else {
+                break;
+            }
+        }
         if let Some(new_top_card) = self.cards.last_mut() {
             new_top_card.set_flipped(false);
         }
-        card
+        cards.reverse();
+        cards
+    }
+
+    fn how_many_cards(&self, mouse_x: i32, mouse_y: i32) -> usize {
+        self.cards
+            .iter()
+            .rev()
+            .enumerate()
+            .find(|(i, card)| card.within_bounds(mouse_x, mouse_y) && !card.flipped())
+            .map_or(0, |(i, _)| i + 1)
     }
 }
 
@@ -83,23 +146,25 @@ impl CardSink for Tableau {
         self.sink
     }
 
-    fn place_card(
+    fn place_cards(
         &mut self,
         mouse_x: i32,
         mouse_y: i32,
-        mut physical_cards: Vec<PhysicalCard>,
+        physical_cards: Vec<PhysicalCard>,
     ) -> Result<(), ()> {
-        if self.is_placement_possible(physical_cards.iter().map(PhysicalCard::card).collect()) {
+        if self.is_placement_possible(&physical_cards.iter().map(PhysicalCard::card).collect()) {
             // Placement is only possible if there is one card
-            let mut physical_card = physical_cards.pop().expect("card should be present");
-            let card_pos = self.cards.len() as i32;
-            physical_card.set_position(self.x, self.y + STACKED_CARD_Y_STRIDE * card_pos);
-            physical_card.set_prev_loc(
-                mouse_x - CARD_WIDTH as i32 / 2,
-                mouse_y - CARD_HEIGHT as i32 / 2,
-            );
-            physical_card.set_visible(true);
-            self.cards.push(physical_card);
+
+            for mut physical_card in physical_cards {
+                let card_pos = self.cards.len() as i32;
+                physical_card.set_position(self.x, self.y + STACKED_CARD_Y_STRIDE * card_pos);
+                physical_card.set_prev_loc(
+                    mouse_x - CARD_WIDTH as i32 / 2,
+                    mouse_y - CARD_HEIGHT as i32 / 2,
+                );
+                physical_card.set_visible(true);
+                self.cards.push(physical_card);
+            }
 
             Ok(())
         } else {
@@ -110,24 +175,20 @@ impl CardSink for Tableau {
     fn within_bounds(&self, x: i32, y: i32) -> bool {
         Bounds::new(
             self.x,
-            self.y + 30 * self.cards.len() as i32,
+            self.y + STACKED_CARD_Y_STRIDE * max(self.cards.len() as i32 - 1, 0),
             CARD_WIDTH,
             CARD_HEIGHT,
         )
         .contains(x, y)
     }
 
-    fn is_placement_possible(&self, cards: Vec<Card>) -> bool {
-        if cards.len() == 1 {
-            let Card(value, suit) = *cards.last().expect("card should be present");
-            if let Some(Card(top_value, top_suit)) = self.cards.last().map(PhysicalCard::card) {
-                top_value.prev_value().map_or(false, |v| v == value)
-                    && top_suit.colour() != suit.colour()
-            } else {
-                value == Value::King
-            }
+    fn is_placement_possible(&self, cards: &Vec<Card>) -> bool {
+        let Card(value, suit) = *cards.first().expect("card should be present");
+        if let Some(Card(top_value, top_suit)) = self.cards.last().map(PhysicalCard::card) {
+            top_value.prev_value().map_or(false, |v| v == value)
+                && top_suit.colour() != suit.colour()
         } else {
-            false
+            value == Value::King
         }
     }
 }

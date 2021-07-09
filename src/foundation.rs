@@ -40,7 +40,7 @@ impl CardSink for Foundation {
         self.sink
     }
 
-    fn is_placement_possible(&self, cards: Vec<Card>) -> bool {
+    fn is_placement_possible(&self, cards: &Vec<Card>) -> bool {
         if cards.len() == 1 {
             let card = *cards.first().expect("card should be present");
             let Card(value, suit) = card;
@@ -62,13 +62,13 @@ impl CardSink for Foundation {
     }
 
     // Returns an Err is placement is not possible
-    fn place_card(
+    fn place_cards(
         &mut self,
         mouse_x: i32,
         mouse_y: i32,
         mut physical_cards: Vec<PhysicalCard>,
     ) -> Result<(), ()> {
-        if self.is_placement_possible(physical_cards.iter().map(PhysicalCard::card).collect()) {
+        if self.is_placement_possible(&physical_cards.iter().map(PhysicalCard::card).collect()) {
             // Placement is only possible if there is one card
             let mut physical_card = physical_cards.pop().expect("card should be present");
             physical_card.set_position(self.x, self.y);
@@ -90,19 +90,43 @@ impl CardSink for Foundation {
 }
 
 impl CardSource for Foundation {
+    fn take_cards(&mut self, num: usize) -> Vec<PhysicalCard> {
+        if num > 0 {
+            self.cards.pop().map_or_else(Vec::new, |c| vec![c])
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn borrow_cards(&self, count: usize) -> Vec<&PhysicalCard> {
+        if count > 0 {
+            self.cards.last().map_or_else(Vec::new, |c| vec![c])
+        } else {
+            Vec::new()
+        }
+    }
+
     fn card_source(&self) -> CardSources {
         self.source
     }
 
-    fn borrow_card(&self) -> Option<&PhysicalCard> {
-        self.cards.last()
+    fn borrow_cards_mut(&mut self, count: usize) -> Vec<&mut PhysicalCard> {
+        if count > 0 {
+            self.cards.last_mut().map_or_else(Vec::new, |c| vec![c])
+        } else {
+            Vec::new()
+        }
     }
 
-    fn borrow_card_mut(&mut self) -> Option<&mut PhysicalCard> {
-        self.cards.last_mut()
-    }
-
-    fn take_card(&mut self) -> Option<PhysicalCard> {
-        self.cards.pop()
+    fn how_many_cards(&self, mouse_x: i32, mouse_y: i32) -> usize {
+        if let Some(physical_card) = self.cards.last() {
+            if physical_card.within_bounds(mouse_x, mouse_y) {
+                1
+            } else {
+                0
+            }
+        } else {
+            0
+        }
     }
 }

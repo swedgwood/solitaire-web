@@ -79,29 +79,35 @@ struct HeldCard {
     source: CardSources,
     x: i32,
     y: i32,
+    count: usize,
     prev_pos: Option<(i32, i32)>,
 }
 
 impl HeldCard {
-    pub fn new(source: &dyn CardSource, mouse_x: i32, mouse_y: i32) -> Self {
-        let card = source
-            .peek_card()
-            .expect("By this point, card should be available");
-        let card_source = source.card_source();
-        let (x, y) = source
-            .borrow_card()
-            .expect("By this point, card should be available")
-            .position();
+    pub fn new(
+        cards: Vec<Card>,
+        source: CardSources,
+        count: usize,
+        x: i32,
+        y: i32,
+        mouse_x: i32,
+        mouse_y: i32,
+    ) -> Self {
         Self {
-            cards: vec![card],
-            source: card_source,
+            cards,
+            source,
             x: mouse_x - CARD_WIDTH as i32 / 2,
             y: mouse_y - CARD_HEIGHT as i32 / 2,
+            count,
             prev_pos: Some((x, y)),
         }
     }
     pub fn source(&self) -> CardSources {
         self.source
+    }
+
+    pub fn count(&self) -> usize {
+        self.count
     }
 
     pub fn set_mouse_position(&mut self, x: i32, y: i32) {
@@ -354,40 +360,47 @@ impl Component for Model {
         match msg {
             Msg::MouseUp(mouse_x, mouse_y) => {
                 let mut result = false;
-                if let Some(source) = self.held_card.as_ref().map(HeldCard::source) {
-                    let card = self
-                        .borrow_source(source)
-                        .peek_card()
-                        .expect("card should be available");
+
+                let mut held_card = None;
+                std::mem::swap(&mut self.held_card, &mut held_card);
+
+                if let Some(held_card) = held_card {
+                    let cards = self
+                        .borrow_source(held_card.source())
+                        .peek_cards(held_card.count());
+
                     if let Some(sink) = self
                         .borrow_sinks()
                         .iter_mut()
                         .find(|s| {
-                            s.within_bounds(mouse_x, mouse_y) && s.is_placement_possible(vec![card])
+                            s.within_bounds(mouse_x, mouse_y) && s.is_placement_possible(&cards)
                         })
                         .map(|s| s.card_sink())
                     {
                         // Place card
-                        let source = self.borrow_source(source);
-                        let physical_card = source.take_card().expect("card should be available");
+                        let source = self.borrow_source(held_card.source());
+                        let physical_cards = source.take_cards(held_card.count());
+
                         self.borrow_sink(sink)
-                            .place_card(mouse_x, mouse_y, vec![physical_card])
+                            .place_cards(mouse_x, mouse_y, physical_cards)
                             .expect("placement should be possible");
 
                         self.held_card = None;
                         result = true;
                     } else {
                         // Return card
-                        let physical_card = self
-                            .borrow_source(source)
-                            .borrow_card_mut()
-                            .expect("card should be available");
+                        let physical_cards = self
+                            .borrow_source(held_card.source())
+                            .borrow_cards_mut(held_card.count());
 
-                        physical_card.set_visible(true);
-                        physical_card.set_prev_loc(
-                            mouse_x - CARD_WIDTH as i32 / 2,
-                            mouse_y - CARD_HEIGHT as i32 / 2,
-                        );
+                        for physical_card in physical_cards {
+                            physical_card.set_visible(true);
+                            physical_card.set_prev_loc(
+                                mouse_x - CARD_WIDTH as i32 / 2,
+                                mouse_y - CARD_HEIGHT as i32 / 2,
+                            );
+                        }
+
                         self.held_card = None;
                         result = true;
                     }
@@ -395,21 +408,37 @@ impl Component for Model {
 
                 result
             }
-            Msg::MouseDown(x, y) => {
-                self.stock_discard.handle_click(x, y) || {
+            Msg::MouseDown(mouse_x, mouse_y) => {
+                self.stock_discard.handle_click(mouse_x, mouse_y) || {
                     let mut result = false;
                     if self.held_card.is_none() {
-                        if let Some(source) = self.borrow_sources().iter_mut().find(|s| {
-                            s.borrow_card()
-                                .map(|c| c.within_bounds(x, y))
-                                .unwrap_or(false)
-                        }) {
+                        if let Some((source, count)) =
+                            self.borrow_sources().iter_mut().find_map(|source| {
+                                let count = source.how_many_cards(mouse_x, mouse_y);
+                                if count == 0 {
+                                    None
+                                } else {
+                                    Some((source, count))
+                                }
+                            })
+                        {
                             source
-                                .borrow_card_mut()
-                                .expect("card should be available")
-                                .set_visible(false);
+                                .borrow_cards_mut(count)
+                                .iter_mut()
+                                .for_each(|c| c.set_visible(false));
                             result = true;
-                            self.held_card = Some(HeldCard::new(*source, x, y));
+                            let cards = source.peek_cards(count);
+
+                            let (x, y) = source.borrow_cards(count).first().unwrap().position();
+                            self.held_card = Some(HeldCard::new(
+                                cards,
+                                source.card_source(),
+                                count,
+                                x,
+                                y,
+                                mouse_x,
+                                mouse_y,
+                            ));
                         } else {
                             self.held_card = None;
                         }
