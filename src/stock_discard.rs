@@ -1,7 +1,10 @@
-use yew::{Html, html};
+use yew::{html, Html};
 
-use crate::{CardSources, card::{CardSource, PhysicalCard}, util::Bounds};
-
+use crate::{
+    card::{CardSource, CardVisual, PhysicalCard},
+    util::Bounds,
+    CardSources,
+};
 
 pub struct Stock {
     cards: Vec<PhysicalCard>,
@@ -13,13 +16,19 @@ pub struct Stock {
 impl Stock {
     pub fn new(x: i32, y: i32) -> Self {
         Self {
-            cards: Vec::new(), bounds: Bounds::new(x, y, 125, 175), x, y
+            cards: Vec::new(),
+            bounds: Bounds::new(x, y, 125, 175),
+            x,
+            y,
         }
     }
 
     pub fn as_html(&self) -> Html {
         html! {
+            <>
+            { CardVisual::EmptySlot.as_html(self.x, self.y) }
             { for self.cards.iter().map(|c| c.as_html()) }
+            </>
         }
     }
 
@@ -37,7 +46,10 @@ impl Stock {
 
     fn deposit_cards(&mut self, mut cards: Vec<PhysicalCard>) {
         let (x, y) = (self.x, self.y);
-        cards.iter_mut().for_each(|c| {c.set_position(x, y); c.set_flipped(true)});
+        cards.iter_mut().for_each(|c| {
+            c.set_position(x, y);
+            c.set_flipped(true)
+        });
         self.cards.append(&mut cards);
     }
 
@@ -55,10 +67,12 @@ pub struct Discard {
 impl Discard {
     pub fn new(x: i32, y: i32) -> Self {
         Self {
-            cards: Vec::new(), x, y
+            cards: Vec::new(),
+            x,
+            y,
         }
     }
-    
+
     fn add_3_cards(&mut self, mut cards: Vec<PhysicalCard>) {
         self.cards.append(&mut cards);
 
@@ -66,33 +80,40 @@ impl Discard {
         let self_x = self.x;
         let self_y = self.y;
 
-        self.cards.iter_mut().enumerate().filter(|(i, _)| len - i <= 5).for_each(|(index, card)| {
-            let mut x = self_x;
+        self.cards
+            .iter_mut()
+            .enumerate()
+            .filter(|(i, _)| len - i <= 5)
+            .for_each(|(index, card)| {
+                let mut x = self_x;
 
-            if len - index <= 2 {
-                let offset = 3 - (len - index) as i32; // Should be a value in {1, 2}
-                x += offset * 35;
-            }
+                if len - index <= 2 {
+                    let offset = 3 - (len - index) as i32; // Should be a value in {1, 2}
+                    x += offset * 35;
+                }
 
-            card.move_to(x, self_y);
-            card.set_flipped(false);
-        });
+                card.move_to(x, self_y);
+                card.set_flipped(false);
+            });
     }
 
     fn take_cards(&mut self) -> Vec<PhysicalCard> {
         let mut cards = Vec::new();
-        std::mem::swap(&mut self.cards, &mut cards); 
+        std::mem::swap(&mut self.cards, &mut cards);
         cards
     }
 
     pub fn as_html(&self) -> Html {
         let len = self.cards.len();
         html! {
+            <>
+            { CardVisual::EmptySlot.as_html(self.x, self.y) }
             { for self.cards.iter().enumerate().map(|(i, c)| if i==len-1 {
                 c.as_draggable_html()
             } else {
                 c.as_html()
             }) }
+            </>
         }
     }
 }
@@ -128,7 +149,7 @@ impl StockDiscard {
     pub fn new(x: i32, y: i32) -> Self {
         Self {
             stock: Stock::new(x, y),
-            discard: Discard::new(x+145, y),
+            discard: Discard::new(x + 145, y),
         }
     }
 

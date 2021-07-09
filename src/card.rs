@@ -6,7 +6,7 @@ use rand::Rng;
 use yew::{html, Html};
 
 use crate::util::Bounds;
-use crate::{CARD_HEIGHT, CARD_WIDTH, CardSinks, CardSources};
+use crate::{CardSinks, CardSources, CARD_HEIGHT, CARD_WIDTH};
 
 #[derive(Clone, Copy)]
 pub enum Suit {
@@ -345,7 +345,6 @@ impl PhysicalCard {
     pub fn set_flipped(&mut self, flipped: bool) {
         self.flipped = flipped;
     }
-
 
     pub fn set_prev_loc(&mut self, x: i32, y: i32) {
         self.prev_loc = Some((x, y));

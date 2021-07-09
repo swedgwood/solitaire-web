@@ -70,7 +70,7 @@ impl HeldCard {
             source: card_source,
             x: mouse_x - CARD_WIDTH as i32 / 2,
             y: mouse_y - CARD_HEIGHT as i32 / 2,
-            prev_pos: Some((x, y))
+            prev_pos: Some((x, y)),
         }
     }
     pub fn source(&self) -> CardSources {
@@ -206,7 +206,8 @@ impl Component for Model {
                         // Return card
                         let physical_card = self.borrow_held_source(held_card).borrow_card_mut();
                         physical_card.set_visible(true);
-                        physical_card.set_prev_loc(x - CARD_WIDTH as i32 / 2, y - CARD_HEIGHT as i32 / 2);
+                        physical_card
+                            .set_prev_loc(x - CARD_WIDTH as i32 / 2, y - CARD_HEIGHT as i32 / 2);
                         self.held_card = None;
                         result = true;
                     }
