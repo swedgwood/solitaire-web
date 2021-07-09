@@ -119,24 +119,20 @@ impl Discard {
 }
 
 impl CardSource for Discard {
-    fn take_card(&mut self) -> PhysicalCard {
-        self.cards.pop().unwrap()
+    fn take_card(&mut self) -> Option<PhysicalCard> {
+        self.cards.pop()
     }
 
-    fn peek_card(&self) -> crate::card::Card {
-        self.cards.last().unwrap().card()
-    }
-
-    fn borrow_card(&self) -> &PhysicalCard {
-        &self.cards.last().unwrap()
+    fn borrow_card(&self) -> Option<&PhysicalCard> {
+        self.cards.last()
     }
 
     fn card_source(&self) -> CardSources {
         CardSources::Discard
     }
 
-    fn borrow_card_mut(&mut self) -> &mut PhysicalCard {
-        self.cards.last_mut().unwrap()
+    fn borrow_card_mut(&mut self) -> Option<&mut PhysicalCard> {
+        self.cards.last_mut()
     }
 }
 

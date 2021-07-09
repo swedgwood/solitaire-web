@@ -8,7 +8,7 @@ use yew::{html, Html};
 use crate::util::Bounds;
 use crate::{CardSinks, CardSources, CARD_HEIGHT, CARD_WIDTH};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Suit {
     Spades,
     Clubs,
@@ -42,7 +42,7 @@ impl Distribution<Suit> for Standard {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Value {
     Ace,
     Two,
@@ -57,6 +57,44 @@ pub enum Value {
     Jack,
     Queen,
     King,
+}
+
+impl Value {
+    pub fn next_value(&self) -> Option<Value> {
+        match self {
+            Value::Ace => Some(Value::Two),
+            Value::Two => Some(Value::Three),
+            Value::Three => Some(Value::Four),
+            Value::Four => Some(Value::Five),
+            Value::Five => Some(Value::Six),
+            Value::Six => Some(Value::Seven),
+            Value::Seven => Some(Value::Eight),
+            Value::Eight => Some(Value::Nine),
+            Value::Nine => Some(Value::Ten),
+            Value::Ten => Some(Value::Jack),
+            Value::Jack => Some(Value::Queen),
+            Value::Queen => Some(Value::King),
+            Value::King => None,
+        }
+    }
+
+    pub fn prev_value(&self) -> Option<Value> {
+        match self {
+            Value::Ace => None,
+            Value::Two => Some(Value::Ace),
+            Value::Three => Some(Value::Two),
+            Value::Four => Some(Value::Three),
+            Value::Five => Some(Value::Four),
+            Value::Six => Some(Value::Five),
+            Value::Seven => Some(Value::Six),
+            Value::Eight => Some(Value::Seven),
+            Value::Nine => Some(Value::Eight),
+            Value::Ten => Some(Value::Nine),
+            Value::Jack => Some(Value::Ten),
+            Value::Queen => Some(Value::Jack),
+            Value::King => Some(Value::Queen),
+        }
+    }
 }
 
 impl fmt::Display for Value {
@@ -103,8 +141,8 @@ impl Distribution<Value> for Standard {
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct Card(Value, Suit);
+#[derive(Clone, Copy, Debug)]
+pub struct Card(pub Value, pub Suit);
 
 pub const DECK: &[Card] = &[
     Card(Value::Ace, Suit::Spades),
@@ -307,6 +345,8 @@ impl CardVisual {
         }
     }
 }
+
+#[derive(Debug)]
 pub struct PhysicalCard {
     x: i32,
     y: i32,
@@ -393,27 +433,36 @@ impl PhysicalCard {
 
 pub trait CardSource {
     fn card_source(&self) -> CardSources;
-    fn borrow_card(&self) -> &PhysicalCard;
-    fn borrow_card_mut(&mut self) -> &mut PhysicalCard;
+    fn borrow_card(&self) -> Option<&PhysicalCard>;
+    fn borrow_card_mut(&mut self) -> Option<&mut PhysicalCard>;
 
-    fn take_card(&mut self) -> PhysicalCard;
-    fn peek_card(&self) -> Card {
-        self.borrow_card().card()
+    fn take_card(&mut self) -> Option<PhysicalCard>;
+    fn peek_card(&self) -> Option<Card> {
+        self.borrow_card().map(PhysicalCard::card)
     }
-    fn set_release_location(&mut self, x: i32, y: i32) {
-        self.borrow_card_mut().set_prev_loc(x, y);
+    fn set_release_location(&mut self, x: i32, y: i32) -> Result<(), ()> {
+        if let Some(physical_card) = self.borrow_card_mut() {
+            physical_card.set_prev_loc(x, y);
+            Ok(())
+        } else {
+            Err(())
+        }
     }
-    fn set_mouse_release_location(&mut self, x: i32, y: i32) {
+    fn set_mouse_release_location(&mut self, x: i32, y: i32) -> Result<(), ()> {
         let x = x - CARD_WIDTH as i32 / 2;
         let y = y - CARD_HEIGHT as i32 / 2;
-        self.set_release_location(x, y);
+        self.set_release_location(x, y)
     }
 }
 
 pub trait CardSink {
-    fn is_placement_possible(&self, card: Card) -> bool;
-    fn place_card(&mut self, physical_card: PhysicalCard) -> Result<(), ()>;
-    fn within_bounds(&self, x: i32, y: i32) -> bool;
     fn card_sink(&self) -> CardSinks;
-    fn set_release_location(&mut self, x: i32, y: i32);
+    fn place_card(
+        &mut self,
+        mouse_x: i32,
+        mouse_y: i32,
+        physical_card: PhysicalCard,
+    ) -> Result<(), ()>;
+    fn within_bounds(&self, x: i32, y: i32) -> bool;
+    fn is_placement_possible(&self, card: Card) -> bool;
 }

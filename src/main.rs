@@ -1,9 +1,11 @@
+use foundation::Foundation;
 use rand::{prelude::SliceRandom, thread_rng};
 use wasm_bindgen::{closure::Closure, JsCast};
 use web_sys::MouseEvent;
 use yew::{html, Component, ComponentLink, Html, ShouldRender};
 
 mod card;
+mod foundation;
 mod stock_discard;
 mod util;
 
@@ -20,7 +22,7 @@ enum Msg {
     MouseMove(i32, i32, i32, i32),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum CardSources {
     Discard,
     Foundation1,
@@ -36,7 +38,7 @@ pub enum CardSources {
     Tableau7,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum CardSinks {
     Foundation1,
     Foundation2,
@@ -62,9 +64,14 @@ struct HeldCard {
 
 impl HeldCard {
     pub fn new(source: &dyn CardSource, mouse_x: i32, mouse_y: i32) -> Self {
-        let card = source.peek_card();
+        let card = source
+            .peek_card()
+            .expect("By this point, card should be available");
         let card_source = source.card_source();
-        let (x, y) = source.borrow_card().position();
+        let (x, y) = source
+            .borrow_card()
+            .expect("By this point, card should be available")
+            .position();
         Self {
             card,
             source: card_source,
@@ -98,25 +105,40 @@ impl HeldCard {
 
 struct Model {
     stock_discard: StockDiscard,
+    foundation1: Foundation,
+    foundation2: Foundation,
+    foundation3: Foundation,
+    foundation4: Foundation,
     held_card: Option<HeldCard>,
 }
 
 impl Model {
     fn borrow_sources(&mut self) -> Vec<&mut dyn CardSource> {
-        vec![self.stock_discard.discard_mut()]
+        vec![
+            self.stock_discard.discard_mut(),
+            &mut self.foundation1,
+            &mut self.foundation2,
+            &mut self.foundation3,
+            &mut self.foundation4,
+        ]
     }
 
     fn borrow_sinks(&mut self) -> Vec<&mut dyn CardSink> {
-        vec![]
+        vec![
+            &mut self.foundation1,
+            &mut self.foundation2,
+            &mut self.foundation3,
+            &mut self.foundation4,
+        ]
     }
 
     fn borrow_source(&mut self, source: CardSources) -> &mut dyn CardSource {
         match source {
             CardSources::Discard => self.stock_discard.discard_mut(),
-            CardSources::Foundation1 => todo!(),
-            CardSources::Foundation2 => todo!(),
-            CardSources::Foundation3 => todo!(),
-            CardSources::Foundation4 => todo!(),
+            CardSources::Foundation1 => &mut self.foundation1,
+            CardSources::Foundation2 => &mut self.foundation2,
+            CardSources::Foundation3 => &mut self.foundation3,
+            CardSources::Foundation4 => &mut self.foundation4,
             CardSources::Tableau1 => todo!(),
             CardSources::Tableau2 => todo!(),
             CardSources::Tableau3 => todo!(),
@@ -129,10 +151,10 @@ impl Model {
 
     fn borrow_sink(&mut self, sink: CardSinks) -> &mut dyn CardSink {
         match sink {
-            CardSinks::Foundation1 => todo!(),
-            CardSinks::Foundation2 => todo!(),
-            CardSinks::Foundation3 => todo!(),
-            CardSinks::Foundation4 => todo!(),
+            CardSinks::Foundation1 => &mut self.foundation1,
+            CardSinks::Foundation2 => &mut self.foundation2,
+            CardSinks::Foundation3 => &mut self.foundation3,
+            CardSinks::Foundation4 => &mut self.foundation4,
             CardSinks::Tableau1 => todo!(),
             CardSinks::Tableau2 => todo!(),
             CardSinks::Tableau3 => todo!(),
@@ -186,28 +208,52 @@ impl Component for Model {
 
         Self {
             stock_discard: StockDiscard::from_cards(10, 10, stock_cards),
+            foundation1: Foundation::new(400, 10, CardSinks::Foundation1, CardSources::Foundation1),
+            foundation2: Foundation::new(550, 10, CardSinks::Foundation2, CardSources::Foundation2),
+            foundation3: Foundation::new(700, 10, CardSinks::Foundation3, CardSources::Foundation3),
+            foundation4: Foundation::new(850, 10, CardSinks::Foundation4, CardSources::Foundation4),
             held_card: None,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::MouseUp(x, y) => {
+            Msg::MouseUp(mouse_x, mouse_y) => {
                 let mut result = false;
                 if let Some(held_card) = self.held_card {
-                    let card = self.borrow_held_source(held_card).peek_card();
+                    let card = self
+                        .borrow_held_source(held_card)
+                        .peek_card()
+                        .expect("card should be available");
                     if let Some(sink) = self
                         .borrow_sinks()
-                        .iter()
-                        .find(|s| s.within_bounds(x, y) && s.is_placement_possible(card))
+                        .iter_mut()
+                        .find(|s| {
+                            s.within_bounds(mouse_x, mouse_y) && s.is_placement_possible(card)
+                        })
+                        .map(|s| s.card_sink())
                     {
-                        // TODO: deposit card
+                        // Place card
+                        let source = self.borrow_source(held_card.source());
+                        let physical_card = source.take_card().expect("card should be available");
+                        self.borrow_sink(sink)
+                            .place_card(mouse_x, mouse_y, physical_card)
+                            .expect("placement should be possible");
+
+                        self.held_card = None;
+                        result = true;
                     } else {
                         // Return card
-                        let physical_card = self.borrow_held_source(held_card).borrow_card_mut();
+                        let physical_card = self
+                            .borrow_held_source(held_card)
+                            .borrow_card_mut()
+                            .expect("card should be available");
+
                         physical_card.set_visible(true);
-                        physical_card
-                            .set_prev_loc(x - CARD_WIDTH as i32 / 2, y - CARD_HEIGHT as i32 / 2);
+                        physical_card.set_prev_loc(
+                            mouse_x - CARD_WIDTH as i32 / 2,
+                            mouse_y - CARD_HEIGHT as i32 / 2,
+                        );
                         self.held_card = None;
                         result = true;
                     }
@@ -218,19 +264,22 @@ impl Component for Model {
             Msg::MouseDown(x, y) => {
                 self.stock_discard.handle_click(x, y) || {
                     let mut result = false;
-                    self.held_card = self.held_card.or(
-                        if let Some(source) = self
-                            .borrow_sources()
-                            .iter_mut()
-                            .find(|s| s.borrow_card().within_bounds(x, y))
-                        {
-                            source.borrow_card_mut().set_visible(false);
+                    self.held_card = self.held_card.or_else(|| {
+                        if let Some(source) = self.borrow_sources().iter_mut().find(|s| {
+                            s.borrow_card()
+                                .map(|c| c.within_bounds(x, y))
+                                .unwrap_or(false)
+                        }) {
+                            source
+                                .borrow_card_mut()
+                                .expect("card should be available")
+                                .set_visible(false);
                             result = true;
                             Some(HeldCard::new(*source, x, y))
                         } else {
                             None
-                        },
-                    );
+                        }
+                    });
                     result
                 }
             }
@@ -258,6 +307,10 @@ impl Component for Model {
             <div>
                 /* <button onclick=self.link.callback(|_| Msg::StockToDiscard)>{ "Deal" }</button> */
                 <br/>
+                { self.foundation1.as_html() }
+                { self.foundation2.as_html() }
+                { self.foundation3.as_html() }
+                { self.foundation4.as_html() }
                 { self.stock_discard.as_html() }
                 { held_card_html }
             </div>
