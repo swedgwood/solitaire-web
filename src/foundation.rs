@@ -32,7 +32,7 @@ impl Foundation {
             }
         } else {
             html! {
-                { CardVisual::EmptySlot.as_html(self.x, self.y) }
+                { CardVisual::EmptySlot.as_html(self.x, self.y, String::new()) }
             }
         }
     }

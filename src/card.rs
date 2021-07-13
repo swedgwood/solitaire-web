@@ -222,17 +222,26 @@ pub enum CardVisual {
 }
 
 impl CardVisual {
-    pub fn as_html_from(&self, from_x: i32, from_y: i32, x: i32, y: i32) -> Html {
-        self.as_html_custom(x, y, Some((from_x, from_y)), None)
+    pub fn as_html_from(
+        &self,
+        from_x: i32,
+        from_y: i32,
+        x: i32,
+        y: i32,
+        identifier: String,
+    ) -> Html {
+        self.as_html_custom(x, y, Some((from_x, from_y)), None, identifier)
     }
 
-    fn as_html_custom_style(&self, custom_style: String) -> Html {
+    fn as_html_custom_style(&self, custom_style: String, identifier: String) -> Html {
+        let nonce: u64 = rand::random();
+        let element_name = format!("div-{}", identifier);
         match self {
             Self::Flipped => {
-                html! { <div class="card flipped-card" style={ custom_style }></div> }
+                html! { <@{element_name} class="card flipped-card" style={ custom_style } /> }
             }
             Self::EmptySlot => {
-                html! { <div class="card empty-slot" style={ custom_style }></div>}
+                html! { <div class="card empty-slot" style={ custom_style } />}
             }
             Self::Card(card) => {
                 let Card(value, suit) = card;
@@ -243,28 +252,41 @@ impl CardVisual {
                 };
 
                 html! {
-                    <div class={{card_class}} style={ custom_style }>
+                    <@{element_name} class={{card_class}} style={ custom_style }>
                         <span class="card-logo">{ value }<br/>{ suit }</span>
                         {{ Self::picture_html(card) }}
                         <span class="card-logo card-logo-flipped">{ value }<br/>{ suit }</span>
-                    </div>
+                    </@>
                 }
             }
             Self::Invisible => html! {},
         }
     }
 
-    pub fn as_html(&self, x: i32, y: i32) -> Html {
-        self.as_html_custom(x, y, None, None)
+    pub fn as_html(&self, x: i32, y: i32, identifier: String) -> Html {
+        self.as_html_custom(x, y, None, None, identifier)
     }
-    pub fn as_draggable_html(&self, x: i32, y: i32) -> Html {
-        self.as_html_custom(x, y, None, "cursor:move;")
+    pub fn as_draggable_html(&self, x: i32, y: i32, identifier: String) -> Html {
+        self.as_html_custom(x, y, None, "cursor:move;", identifier)
     }
-    pub fn as_draggable_html_from(&self, from_x: i32, from_y: i32, to_x: i32, to_y: i32) -> Html {
-        self.as_html_custom(to_x, to_y, Some((from_x, from_y)), "cursor:move;")
+    pub fn as_draggable_html_from(
+        &self,
+        from_x: i32,
+        from_y: i32,
+        to_x: i32,
+        to_y: i32,
+        identifier: String,
+    ) -> Html {
+        self.as_html_custom(
+            to_x,
+            to_y,
+            Some((from_x, from_y)),
+            "cursor:move;",
+            identifier,
+        )
     }
-    pub fn as_clickable_html(&self, x: i32, y: i32) -> Html {
-        self.as_html_custom(x, y, None, "cursor:pointer;")
+    pub fn as_clickable_html(&self, x: i32, y: i32, identifier: String) -> Html {
+        self.as_html_custom(x, y, None, "cursor:pointer;", identifier)
     }
 
     fn as_html_custom<'a, OS: Into<Option<&'a str>>>(
@@ -273,6 +295,7 @@ impl CardVisual {
         y: i32,
         from: Option<(i32, i32)>,
         custom_style: OS,
+        identifier: String,
     ) -> Html {
         let position_part = format!("left:{}px;top:{}px;", x, y);
         let animation_part = from.map_or(String::new(), |(sx, sy)| {
@@ -282,10 +305,10 @@ impl CardVisual {
             )
         });
         let custom_part = custom_style.into().unwrap_or("");
-        self.as_html_custom_style(format!(
-            "{}{}{}",
-            position_part, animation_part, custom_part
-        ))
+        self.as_html_custom_style(
+            format!("{}{}{}", position_part, animation_part, custom_part),
+            identifier,
+        )
     }
 
     fn picture_html(card: &Card) -> Html {
@@ -372,6 +395,7 @@ pub struct PhysicalCard {
     flipped: bool,
     card: Card,
     prev_loc: Option<(i32, i32)>,
+    identifier: String,
 }
 
 impl PhysicalCard {
@@ -383,6 +407,7 @@ impl PhysicalCard {
             flipped: false,
             card: *card,
             prev_loc: None,
+            identifier: rand::random::<u64>().to_string(),
         }
     }
 
@@ -428,6 +453,10 @@ impl PhysicalCard {
     pub fn move_to(&mut self, x: i32, y: i32) {
         self.prev_loc = Some((self.x, self.y));
         self.set_position(x, y);
+
+        // Resetting identifier causes yew to regenerate the div (rather than reuse the existing one)
+        // Which causes animations to restart.
+        self.identifier = rand::random::<u64>().to_string();
     }
 
     pub fn within_bounds(&self, x: i32, y: i32) -> bool {
@@ -448,8 +477,13 @@ impl PhysicalCard {
             custom_style = Some("cursor: move;");
         }
 
-        self.card_visual()
-            .as_html_custom(self.x, self.y, self.prev_loc, custom_style)
+        self.card_visual().as_html_custom(
+            self.x,
+            self.y,
+            self.prev_loc,
+            custom_style,
+            self.identifier.clone(),
+        )
     }
 }
 

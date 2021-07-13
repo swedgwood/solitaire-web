@@ -26,14 +26,16 @@ impl Stock {
     }
 
     pub fn as_html(&self) -> Html {
-        if self.cards.is_empty() {
-            html! {
-                CardVisual::EmptySlot.as_html(self.x, self.y)
-            }
-        } else {
-            html! {
-                CardVisual::Flipped.as_clickable_html(self.x, self.y)
-            }
+        let card_html = match self.cards.last() {
+            Some(card) => card.as_html(),
+            None => html! {},
+        };
+
+        html! {
+            <>
+                { CardVisual::EmptySlot.as_html(self.x, self.y, String::new()) }
+                { card_html }
+            </>
         }
     }
 
@@ -51,7 +53,12 @@ impl Stock {
 
     fn deposit_cards(&mut self, mut cards: Vec<PhysicalCard>) {
         let (x, y) = (self.x, self.y);
-        cards.iter_mut().for_each(|c| {
+        let last_index = max(0, cards.len() as i32 - 1) as usize;
+        cards.iter_mut().enumerate().for_each(|(i, c)| {
+            if i != last_index {
+                c.set_prev_loc(x, y);
+            }
+
             c.set_position(x, y);
             c.set_flipped(true)
         });
@@ -88,7 +95,7 @@ impl Discard {
         self.cards
             .iter_mut()
             .enumerate()
-            .filter(|(i, _)| len - i <= 5)
+            .filter(|(i, _)| len - 1 - i <= 5)
             .for_each(|(index, card)| {
                 let mut x = self_x;
 
@@ -109,20 +116,17 @@ impl Discard {
     }
 
     pub fn as_html(&self) -> Html {
-        if self.cards.is_empty() {
-            html! {
-                { CardVisual::EmptySlot.as_html(self.x, self.y) }
-            }
-        } else {
-            let end = self.cards.len();
-            let start = max(end - 3, 0);
-            html! {
+        let end = self.cards.len();
+        let start = max(end as i32 - 6, 0) as usize;
+        html! {
+            <>
+                { CardVisual::EmptySlot.as_html(self.x, self.y, String::new()) }
                 { for (start..end).map(|i| if i==end {
                     self.cards[i].as_draggable_html()
                 } else {
                     self.cards[i].as_html()
                 }) }
-            }
+            </>
         }
     }
 }

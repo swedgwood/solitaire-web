@@ -125,7 +125,7 @@ impl HeldCard {
             html! {
                 { for self.cards.iter().enumerate().map(|(i, c)|
                     CardVisual::Card(*c).as_draggable_html_from(
-                        from_x, from_y, self.x, self.y + i as i32 * STACKED_CARD_Y_STRIDE
+                        from_x, from_y, self.x, self.y + i as i32 * STACKED_CARD_Y_STRIDE, String::from("held")
                     )
                 )}
             }
@@ -133,7 +133,7 @@ impl HeldCard {
             html! {
                 { for self.cards.iter().enumerate().map(|(i, c)|
                     CardVisual::Card(*c).as_draggable_html(
-                        self.x, self.y + i as i32 * STACKED_CARD_Y_STRIDE
+                        self.x, self.y + i as i32 * STACKED_CARD_Y_STRIDE, String::from("held")
                     )
                 )}
             }

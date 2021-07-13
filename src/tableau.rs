@@ -51,7 +51,7 @@ impl Tableau {
     pub fn as_html(&self) -> Html {
         if self.cards.is_empty() {
             html! {
-                { CardVisual::EmptySlot.as_html(self.x, self.y) }
+                { CardVisual::EmptySlot.as_html(self.x, self.y, String::new()) }
             }
         } else {
             let len = self.cards.len();
