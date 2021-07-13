@@ -121,7 +121,17 @@ impl Discard {
 impl CardSource for Discard {
     fn take_cards(&mut self, num: usize) -> Vec<PhysicalCard> {
         if num > 0 {
-            self.cards.pop().map_or_else(Vec::new, |c| vec![c])
+            let return_value = self.cards.pop().map_or_else(Vec::new, |c| vec![c]);
+            let len = self.cards.len();
+            let (x, y) = (self.x, self.y);
+            self.cards
+                .iter_mut()
+                .enumerate()
+                .map(|(i, c)| ((len - i - 1) as i32, c))
+                .filter(|(i, _)| *i < 3)
+                .for_each(|(i, c)| c.set_position(x + (2 - i) * STACKED_CARD_X_STRIDE, y));
+
+            return_value
         } else {
             Vec::new()
         }
