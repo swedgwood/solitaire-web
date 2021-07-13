@@ -49,13 +49,10 @@ impl Tableau {
     }
 
     pub fn as_html(&self) -> Html {
-        if self.cards.is_empty() {
-            html! {
+        let len = self.cards.len();
+        html! {
+            <>
                 { CardVisual::EmptySlot.as_html(self.x, self.y, String::new()) }
-            }
-        } else {
-            let len = self.cards.len();
-            html! {
                 { for self.cards.iter().enumerate().map(
                     |(i, c)| if i==len-1 {
                         c.as_draggable_html()
@@ -63,7 +60,7 @@ impl Tableau {
                         c.as_html()
                     })
                 }
-            }
+            </>
         }
     }
 
@@ -167,7 +164,7 @@ impl CardSink for Tableau {
 
             for mut physical_card in physical_cards {
                 let card_pos = self.cards.len() as i32;
-                physical_card.set_position(self.x, self.y + STACKED_CARD_Y_STRIDE * card_pos);
+                physical_card.set_xy(self.x, self.y + STACKED_CARD_Y_STRIDE * card_pos);
                 physical_card.set_prev_loc(
                     mouse_x - CARD_WIDTH as i32 / 2,
                     mouse_y - CARD_HEIGHT as i32 / 2,

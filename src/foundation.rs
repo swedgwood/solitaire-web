@@ -26,14 +26,21 @@ impl Foundation {
     }
 
     pub fn as_html(&self) -> Html {
-        if let Some(top_card) = self.cards.last() {
-            html! {
-                { top_card.as_draggable_html() }
-            }
+        let top_card_html = match self.cards.last() {
+            Some(card) => card.as_draggable_html(),
+            None => html! {},
+        };
+        let second_top_card_html = if self.cards.len() >= 2 {
+            self.cards[self.cards.len() - 2].as_html()
         } else {
-            html! {
-                { CardVisual::EmptySlot.as_html(self.x, self.y, String::new()) }
-            }
+            CardVisual::EmptySlot.as_html(self.x, self.y, String::new())
+        };
+
+        html! {
+            <>
+                { second_top_card_html }
+                { top_card_html }
+            </>
         }
     }
 }
@@ -74,7 +81,7 @@ impl CardSink for Foundation {
         if self.is_placement_possible(&physical_cards.iter().map(PhysicalCard::card).collect()) {
             // Placement is only possible if there is one card
             let mut physical_card = physical_cards.pop().expect("card should be present");
-            physical_card.set_position(self.x, self.y);
+            physical_card.set_xy(self.x, self.y);
             physical_card.set_prev_loc(
                 mouse_x - CARD_WIDTH as i32 / 2,
                 mouse_y - CARD_HEIGHT as i32 / 2,

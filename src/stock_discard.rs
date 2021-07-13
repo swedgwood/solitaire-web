@@ -25,6 +25,16 @@ impl Stock {
         }
     }
 
+    pub fn from_cards(x: i32, y: i32, mut cards: Vec<PhysicalCard>) -> Self {
+        let mut stock = Self::new(x, y);
+        cards.iter_mut().for_each(|card| {
+            card.set_position(stock.x, stock.y);
+            card.set_flipped(true)
+        });
+        stock.cards = cards;
+        stock
+    }
+
     pub fn as_html(&self) -> Html {
         let card_html = match self.cards.last() {
             Some(card) => card.as_html(),
@@ -55,11 +65,12 @@ impl Stock {
         let (x, y) = (self.x, self.y);
         let last_index = max(0, cards.len() as i32 - 1) as usize;
         cards.iter_mut().enumerate().for_each(|(i, c)| {
-            if i != last_index {
-                c.set_prev_loc(x, y);
+            if i == last_index {
+                c.move_to(x, y)
+            } else {
+                c.set_position(x, y);
             }
 
-            c.set_position(x, y);
             c.set_flipped(true)
         });
         self.cards.append(&mut cards);
@@ -142,7 +153,7 @@ impl CardSource for Discard {
                 .enumerate()
                 .map(|(i, c)| ((len - i - 1) as i32, c))
                 .filter(|(i, _)| *i < 3)
-                .for_each(|(i, c)| c.set_position(x + (2 - i) * STACKED_CARD_X_STRIDE, y));
+                .for_each(|(i, c)| c.move_to(x + (2 - i) * STACKED_CARD_X_STRIDE, y));
 
             return_value
         } else {
@@ -197,9 +208,10 @@ impl StockDiscard {
     }
 
     pub fn from_cards(x: i32, y: i32, cards: Vec<PhysicalCard>) -> Self {
-        let mut stock_discard = Self::new(x, y);
-        stock_discard.stock.deposit_cards(cards);
-        stock_discard
+        Self {
+            stock: Stock::from_cards(x, y, cards),
+            discard: Discard::new(x + CARD_X_STRIDE, y),
+        }
     }
 
     pub fn discard_mut(&mut self) -> &mut Discard {

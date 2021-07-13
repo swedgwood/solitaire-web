@@ -300,7 +300,7 @@ impl CardVisual {
         let position_part = format!("left:{}px;top:{}px;", x, y);
         let animation_part = from.map_or(String::new(), |(sx, sy)| {
             format!(
-                "--start-left:{}px;--start-top:{}px;animation:movingCard 0.2s linear 0s 1 forwards;",
+                "--start-left:{}px;--start-top:{}px;animation:movingCard 5s linear 0s 1 forwards;",
                 sx, sy
             )
         });
@@ -391,10 +391,11 @@ impl CardVisual {
 pub struct PhysicalCard {
     x: i32,
     y: i32,
+    prev_x: i32,
+    prev_y: i32,
     visible: bool,
     flipped: bool,
     card: Card,
-    prev_loc: Option<(i32, i32)>,
     identifier: String,
 }
 
@@ -403,10 +404,11 @@ impl PhysicalCard {
         Self {
             x,
             y,
+            prev_x: x,
+            prev_y: y,
             visible: true,
             flipped: false,
             card: *card,
-            prev_loc: None,
             identifier: rand::random::<u64>().to_string(),
         }
     }
@@ -434,7 +436,8 @@ impl PhysicalCard {
     }
 
     pub fn set_prev_loc(&mut self, x: i32, y: i32) {
-        self.prev_loc = Some((x, y));
+        self.prev_x = x;
+        self.prev_y = y;
     }
 
     pub fn card(&self) -> Card {
@@ -445,14 +448,19 @@ impl PhysicalCard {
         (self.x, self.y)
     }
 
-    pub fn set_position(&mut self, x: i32, y: i32) {
+    pub fn set_xy(&mut self, x: i32, y: i32) {
         self.x = x;
         self.y = y;
     }
 
+    pub fn set_position(&mut self, x: i32, y: i32) {
+        self.set_prev_loc(x, y);
+        self.set_xy(x, y);
+    }
+
     pub fn move_to(&mut self, x: i32, y: i32) {
-        self.prev_loc = Some((self.x, self.y));
-        self.set_position(x, y);
+        self.set_prev_loc(self.x, self.y);
+        self.set_xy(x, y);
 
         // Resetting identifier causes yew to regenerate the div (rather than reuse the existing one)
         // Which causes animations to restart.
@@ -480,7 +488,7 @@ impl PhysicalCard {
         self.card_visual().as_html_custom(
             self.x,
             self.y,
-            self.prev_loc,
+            Some((self.prev_x, self.prev_y)),
             custom_style,
             self.identifier.clone(),
         )
