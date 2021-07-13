@@ -54,8 +54,15 @@ impl Tableau {
                 { CardVisual::EmptySlot.as_html(self.x, self.y) }
             }
         } else {
+            let len = self.cards.len();
             html! {
-                { for self.cards.iter().map(|c| c.as_html() ) }
+                { for self.cards.iter().enumerate().map(
+                    |(i, c)| if i==len-1 {
+                        c.as_draggable_html()
+                    } else {
+                        c.as_html()
+                    })
+                }
             }
         }
     }
