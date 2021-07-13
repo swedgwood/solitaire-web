@@ -26,11 +26,14 @@ impl Foundation {
     }
 
     pub fn as_html(&self) -> Html {
-        html! {
-            <>
-            { CardVisual::EmptySlot.as_html(self.x, self.y) }
-            { for self.cards.iter().map(PhysicalCard::as_html) }
-            </>
+        if let Some(top_card) = self.cards.last() {
+            html! {
+                { top_card.as_draggable_html() }
+            }
+        } else {
+            html! {
+                { CardVisual::EmptySlot.as_html(self.x, self.y) }
+            }
         }
     }
 }

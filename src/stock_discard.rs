@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 use yew::{html, Html};
 
 use crate::{
@@ -24,11 +26,14 @@ impl Stock {
     }
 
     pub fn as_html(&self) -> Html {
-        html! {
-            <>
-            { CardVisual::EmptySlot.as_html(self.x, self.y) }
-            { for self.cards.iter().map(|c| c.as_html()) }
-            </>
+        if self.cards.is_empty() {
+            html! {
+                CardVisual::EmptySlot.as_html(self.x, self.y)
+            }
+        } else {
+            html! {
+                CardVisual::Flipped.as_html(self.x, self.y)
+            }
         }
     }
 
@@ -104,16 +109,20 @@ impl Discard {
     }
 
     pub fn as_html(&self) -> Html {
-        let len = self.cards.len();
-        html! {
-            <>
-            { CardVisual::EmptySlot.as_html(self.x, self.y) }
-            { for self.cards.iter().enumerate().map(|(i, c)| if i==len-1 {
-                c.as_draggable_html()
-            } else {
-                c.as_html()
-            }) }
-            </>
+        if self.cards.is_empty() {
+            html! {
+                { CardVisual::EmptySlot.as_html(self.x, self.y) }
+            }
+        } else {
+            let end = self.cards.len();
+            let start = max(end - 3, 0);
+            html! {
+                { for (start..end).map(|i| if i==end {
+                    self.cards[i].as_draggable_html()
+                } else {
+                    self.cards[i].as_html()
+                }) }
+            }
         }
     }
 }

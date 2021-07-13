@@ -49,11 +49,14 @@ impl Tableau {
     }
 
     pub fn as_html(&self) -> Html {
-        html! {
-            <>
-            { CardVisual::EmptySlot.as_html(self.x, self.y) }
-            { for self.cards.iter().map(|c| c.as_html() ) }
-            </>
+        if self.cards.is_empty() {
+            html! {
+                { CardVisual::EmptySlot.as_html(self.x, self.y) }
+            }
+        } else {
+            html! {
+                { for self.cards.iter().map(|c| c.as_html() ) }
+            }
         }
     }
 
