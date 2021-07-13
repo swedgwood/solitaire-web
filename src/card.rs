@@ -263,6 +263,9 @@ impl CardVisual {
     pub fn as_draggable_html_from(&self, from_x: i32, from_y: i32, to_x: i32, to_y: i32) -> Html {
         self.as_html_custom(to_x, to_y, Some((from_x, from_y)), "cursor:move;")
     }
+    pub fn as_clickable_html(&self, x: i32, y: i32) -> Html {
+        self.as_html_custom(x, y, None, "cursor:pointer;")
+    }
 
     fn as_html_custom<'a, OS: Into<Option<&'a str>>>(
         &self,

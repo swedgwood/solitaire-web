@@ -32,7 +32,7 @@ impl Stock {
             }
         } else {
             html! {
-                CardVisual::Flipped.as_html(self.x, self.y)
+                CardVisual::Flipped.as_clickable_html(self.x, self.y)
             }
         }
     }
