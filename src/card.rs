@@ -300,7 +300,7 @@ impl CardVisual {
         let position_part = format!("left:{}px;top:{}px;", x, y);
         let animation_part = from.map_or(String::new(), |(sx, sy)| {
             format!(
-                "--start-left:{}px;--start-top:{}px;animation:movingCard 5s linear 0s 1 forwards;",
+                "--start-left:{}px;--start-top:{}px;animation:movingCard 0.2s linear 0s 1 forwards;",
                 sx, sy
             )
         });

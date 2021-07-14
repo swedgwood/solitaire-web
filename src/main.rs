@@ -2,7 +2,7 @@ use foundation::Foundation;
 use rand::{prelude::SliceRandom, thread_rng};
 use tableau::Tableau;
 use wasm_bindgen::{closure::Closure, JsCast};
-use web_sys::{Document, MouseEvent};
+use web_sys::{Document, PointerEvent, TouchEvent};
 use yew::{html, Component, ComponentLink, Html, ShouldRender};
 
 mod card;
@@ -38,8 +38,8 @@ const TABLEAUS_X: i32 = PADDING;
 enum Msg {
     MouseUp(i32, i32),
     MouseDown(i32, i32),
-    // x, y, dx, dy
-    MouseMove(i32, i32, i32, i32),
+    MouseMove(i32, i32),
+    Touch(i32, i32),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -142,6 +142,7 @@ impl HeldCard {
 }
 
 struct Model {
+    link: ComponentLink<Self>,
     stock_discard: StockDiscard,
     foundation1: Foundation,
     foundation2: Foundation,
@@ -229,29 +230,77 @@ impl Model {
     }
 
     fn setup_event_callbacks(document: &Document, link: &ComponentLink<Self>) {
-        let mouseup_callback = link.callback(|e: MouseEvent| Msg::MouseUp(e.page_x(), e.page_y()));
-        let mouseup_closure =
-            Closure::wrap(Box::new(move |e: MouseEvent| mouseup_callback.emit(e))
-                as Box<dyn FnMut(MouseEvent)>);
-        document.set_onmouseup(Some(mouseup_closure.as_ref().unchecked_ref()));
-        mouseup_closure.forget();
+        let pointerup_callback =
+            link.callback(|e: PointerEvent| Msg::MouseUp(e.page_x(), e.page_y()));
+        let pointerup_closure =
+            Closure::wrap(Box::new(move |e: PointerEvent| pointerup_callback.emit(e))
+                as Box<dyn FnMut(PointerEvent)>);
+        document.set_onpointerup(Some(pointerup_closure.as_ref().unchecked_ref()));
+        pointerup_closure.forget();
 
-        let mousedown_callback =
-            link.callback(|e: MouseEvent| Msg::MouseDown(e.page_x(), e.page_y()));
-        let mousedown_closure =
-            Closure::wrap(Box::new(move |e: MouseEvent| mousedown_callback.emit(e))
-                as Box<dyn FnMut(MouseEvent)>);
-        document.set_onmousedown(Some(mousedown_closure.as_ref().unchecked_ref()));
-        mousedown_closure.forget();
+        let pointerdown_callback =
+            link.callback(|e: PointerEvent| Msg::MouseDown(e.page_x(), e.page_y()));
+        let pointerdown_closure =
+            Closure::wrap(
+                Box::new(move |e: PointerEvent| pointerdown_callback.emit(e))
+                    as Box<dyn FnMut(PointerEvent)>,
+            );
+        document.set_onpointerdown(Some(pointerdown_closure.as_ref().unchecked_ref()));
+        pointerdown_closure.forget();
 
-        let mousemove_callback = link.callback(|e: MouseEvent| {
-            Msg::MouseMove(e.page_x(), e.page_y(), e.movement_x(), e.movement_y())
+        let pointermove_callback =
+            link.callback(|e: PointerEvent| Msg::MouseMove(e.page_x(), e.page_y()));
+        let pointermove_closure =
+            Closure::wrap(
+                Box::new(move |e: PointerEvent| pointermove_callback.emit(e))
+                    as Box<dyn FnMut(PointerEvent)>,
+            );
+        document.set_onpointermove(Some(pointermove_closure.as_ref().unchecked_ref()));
+        pointermove_closure.forget();
+
+        /*
+        let touchstart_callback = link.callback(|e: TouchEvent| {
+            let touch = e.touches().get(0).unwrap();
+            Msg::MouseDown(touch.page_x(), touch.page_y())
         });
-        let mousemove_closure =
-            Closure::wrap(Box::new(move |e: MouseEvent| mousemove_callback.emit(e))
-                as Box<dyn FnMut(MouseEvent)>);
-        document.set_onmousemove(Some(mousemove_closure.as_ref().unchecked_ref()));
-        mousemove_closure.forget();
+        let touchstart_closure =
+            Closure::wrap(Box::new(move |e: TouchEvent| touchstart_callback.emit(e))
+                as Box<dyn FnMut(TouchEvent)>);
+        document.set_ontouchstart(Some(touchstart_closure.as_ref().unchecked_ref()));
+        touchstart_closure.forget();
+        */
+
+        let touchend_callback = link.callback(|e: TouchEvent| {
+            let touch = e.touches().get(0).unwrap();
+            Msg::Touch(touch.page_x(), touch.page_y())
+        });
+        let touchend_closure =
+            Closure::wrap(Box::new(move |e: TouchEvent| touchend_callback.emit(e))
+                as Box<dyn FnMut(TouchEvent)>);
+        document.set_ontouchend(Some(touchend_closure.as_ref().unchecked_ref()));
+        touchend_closure.forget();
+
+        let touchcancel_callback = link.callback(|e: TouchEvent| {
+            let touch = e.touches().get(0).unwrap();
+            Msg::Touch(touch.page_x(), touch.page_y())
+        });
+        let touchcancel_closure =
+            Closure::wrap(Box::new(move |e: TouchEvent| touchcancel_callback.emit(e))
+                as Box<dyn FnMut(TouchEvent)>);
+        document.set_ontouchcancel(Some(touchcancel_closure.as_ref().unchecked_ref()));
+        touchcancel_closure.forget();
+
+        /*
+        let touchmove_callback = link.callback(|e: TouchEvent| {
+            let touch = e.touches().get(0).unwrap();
+            Msg::MouseMove(touch.page_x(), touch.page_y())
+        });
+        let touchmove_closure =
+            Closure::wrap(Box::new(move |e: TouchEvent| touchmove_callback.emit(e))
+                as Box<dyn FnMut(TouchEvent)>);
+        document.set_ontouchmove(Some(touchmove_closure.as_ref().unchecked_ref()));
+        touchmove_closure.forget();
+        */
     }
 }
 
@@ -278,6 +327,7 @@ impl Component for Model {
         Self::setup_event_callbacks(&document, &link);
 
         Self {
+            link,
             stock_discard: StockDiscard::from_cards(STOCK_DISCARD_X, STOCK_DISCARD_Y, stock_cards),
             foundation1: Foundation::new(
                 FOUNDATIONS_X,
@@ -446,13 +496,22 @@ impl Component for Model {
                     result
                 }
             }
-            Msg::MouseMove(x, y, _dx, _dy) => {
+            Msg::MouseMove(x, y) => {
                 if let Some(held_card) = &mut self.held_card {
                     held_card.set_mouse_position(x, y);
                     true
                 } else {
                     false
                 }
+            }
+            Msg::Touch(x, y) => {
+                if self.held_card.is_some() {
+                    self.link.send_message(Msg::MouseUp(x, y))
+                } else {
+                    self.link.send_message(Msg::MouseDown(x, y));
+                    self.link.send_message(Msg::MouseMove(300, 600));
+                }
+                false
             }
         }
     }
