@@ -159,7 +159,12 @@ impl CardSink for Tableau {
         mouse_y: i32,
         physical_cards: Vec<PhysicalCard>,
     ) -> Result<(), ()> {
-        if self.is_placement_possible(&physical_cards.iter().map(PhysicalCard::card).collect()) {
+        if self.is_placement_possible(
+            &physical_cards
+                .iter()
+                .map(PhysicalCard::card)
+                .collect::<Vec<Card>>(),
+        ) {
             // Placement is only possible if there is one card
 
             for mut physical_card in physical_cards {
@@ -189,7 +194,7 @@ impl CardSink for Tableau {
         .contains(x, y)
     }
 
-    fn is_placement_possible(&self, cards: &Vec<Card>) -> bool {
+    fn is_placement_possible(&self, cards: &[Card]) -> bool {
         let Card(value, suit) = *cards.first().expect("card should be present");
         if let Some(Card(top_value, top_suit)) = self.cards.last().map(PhysicalCard::card) {
             top_value.prev_value().map_or(false, |v| v == value)

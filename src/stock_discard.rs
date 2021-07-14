@@ -200,6 +200,7 @@ pub struct StockDiscard {
 }
 
 impl StockDiscard {
+    #[allow(dead_code)]
     pub fn new(x: i32, y: i32) -> Self {
         Self {
             stock: Stock::new(x, y),

@@ -225,6 +225,7 @@ impl Model {
         }
     }
 
+    #[allow(dead_code)]
     fn borrow_held_source(&mut self, held_card: HeldCard) -> &mut dyn CardSource {
         self.borrow_source(held_card.source())
     }

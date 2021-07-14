@@ -514,5 +514,5 @@ pub trait CardSink {
         physical_cards: Vec<PhysicalCard>,
     ) -> Result<(), ()>;
     fn within_bounds(&self, x: i32, y: i32) -> bool;
-    fn is_placement_possible(&self, cards: &Vec<Card>) -> bool;
+    fn is_placement_possible(&self, cards: &[Card]) -> bool;
 }

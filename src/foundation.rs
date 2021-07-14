@@ -50,7 +50,7 @@ impl CardSink for Foundation {
         self.sink
     }
 
-    fn is_placement_possible(&self, cards: &Vec<Card>) -> bool {
+    fn is_placement_possible(&self, cards: &[Card]) -> bool {
         if cards.len() == 1 {
             let card = *cards.first().expect("card should be present");
             let Card(value, suit) = card;
@@ -78,7 +78,12 @@ impl CardSink for Foundation {
         mouse_y: i32,
         mut physical_cards: Vec<PhysicalCard>,
     ) -> Result<(), ()> {
-        if self.is_placement_possible(&physical_cards.iter().map(PhysicalCard::card).collect()) {
+        if self.is_placement_possible(
+            &physical_cards
+                .iter()
+                .map(PhysicalCard::card)
+                .collect::<Vec<Card>>(),
+        ) {
             // Placement is only possible if there is one card
             let mut physical_card = physical_cards.pop().expect("card should be present");
             physical_card.set_xy(self.x, self.y);
