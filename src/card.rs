@@ -222,19 +222,7 @@ pub enum CardVisual {
 }
 
 impl CardVisual {
-    pub fn as_html_from(
-        &self,
-        from_x: i32,
-        from_y: i32,
-        x: i32,
-        y: i32,
-        identifier: String,
-    ) -> Html {
-        self.as_html_custom(x, y, Some((from_x, from_y)), None, identifier)
-    }
-
     fn as_html_custom_style(&self, custom_style: String, identifier: String) -> Html {
-        let nonce: u64 = rand::random();
         let element_name = format!("div-{}", identifier);
         match self {
             Self::Flipped => {
@@ -472,26 +460,18 @@ impl PhysicalCard {
     }
 
     pub fn as_html(&self) -> Html {
-        self.as_html_custom(false)
+        self.card_visual()
+            .as_html(self.x, self.y, self.identifier.clone())
     }
 
     pub fn as_draggable_html(&self) -> Html {
-        self.as_html_custom(true)
+        self.card_visual()
+            .as_draggable_html(self.x, self.y, self.identifier.clone())
     }
 
-    fn as_html_custom(&self, draggable: bool) -> Html {
-        let mut custom_style = None;
-        if draggable {
-            custom_style = Some("cursor: move;");
-        }
-
-        self.card_visual().as_html_custom(
-            self.x,
-            self.y,
-            Some((self.prev_x, self.prev_y)),
-            custom_style,
-            self.identifier.clone(),
-        )
+    pub fn as_clickable_html(&self) -> Html {
+        self.card_visual()
+            .as_clickable_html(self.x, self.y, self.identifier.clone())
     }
 }
 

@@ -119,7 +119,7 @@ impl CardSource for Tableau {
     fn take_cards(&mut self, num: usize) -> Vec<PhysicalCard> {
         let mut cards: Vec<PhysicalCard> = Vec::new();
 
-        for i in 0..num {
+        for _ in 0..num {
             if let Some(card) = self.cards.pop() {
                 if card.flipped() {
                     self.cards.push(card);
@@ -143,7 +143,7 @@ impl CardSource for Tableau {
             .iter()
             .rev()
             .enumerate()
-            .find(|(i, card)| card.within_bounds(mouse_x, mouse_y) && !card.flipped())
+            .find(|(_, card)| card.within_bounds(mouse_x, mouse_y) && !card.flipped())
             .map_or(0, |(i, _)| i + 1)
     }
 }

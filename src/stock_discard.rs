@@ -37,7 +37,7 @@ impl Stock {
 
     pub fn as_html(&self) -> Html {
         let card_html = match self.cards.last() {
-            Some(card) => card.as_html(),
+            Some(card) => card.as_clickable_html(),
             None => html! {},
         };
 
