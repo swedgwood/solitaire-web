@@ -13,3 +13,4 @@ Yes, it was probably a better idea to use a canvas, and Yew was probably not eve
 - Might be able to clean up animations a bit more (although I think I've reached the limit of what is possible with the current architecture)
 - Mobile controls *work* (tap card to pick up, tap card to place), but could probably be improved
 - There is no coded win condition, and also no kind of victory message.
+- Could add sounds
